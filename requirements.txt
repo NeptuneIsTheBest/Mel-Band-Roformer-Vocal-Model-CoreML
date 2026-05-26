@@ -1,0 +1,12 @@
+coremltools>=9.0
+einops
+huggingface_hub
+ml-collections
+numpy
+PyYAML
+psutil
+rotary-embedding-torch
+soundfile
+torch
+tqdm
+

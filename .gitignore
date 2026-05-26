@@ -1,0 +1,14 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+
+Mel-Band-Roformer-Vocal-Model/
+checkpoints/
+logs/
+outputs/audio/
+
+outputs/**/*.ckpt
+outputs/**/*.bin
+outputs/**/*.wav
+outputs/**/*_sliced_bad*
