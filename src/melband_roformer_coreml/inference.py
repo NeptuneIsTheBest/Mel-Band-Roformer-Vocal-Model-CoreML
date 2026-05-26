@@ -1,140 +1,19 @@
-#!/usr/bin/env python3
 from __future__ import annotations
 
 import argparse
-import contextlib
-import ctypes
 import gc
 import json
 import math
-import sys
-import threading
 import time
 from pathlib import Path
 
 import coremltools as ct
 import numpy as np
-import psutil
 import soundfile as sf
 
-
-ROOT = Path(__file__).resolve().parent
-DEFAULT_MODEL_PATH = ROOT / "outputs" / "MelBandRoformerVocal_macOS_waveform.mlpackage"
-DEFAULT_OUTPUT_DIR = ROOT / "outputs" / "audio"
-
-
-class MacOSAutoreleasePool:
-    def __init__(self) -> None:
-        self._pool: int | None = None
-        self._objc: ctypes.CDLL | None = None
-        self._msg_send = None
-        self._drain = 0
-
-    def __enter__(self) -> "MacOSAutoreleasePool":
-        if sys.platform != "darwin":
-            return self
-        try:
-            ctypes.CDLL("/System/Library/Frameworks/Foundation.framework/Foundation")
-            objc = ctypes.CDLL("/usr/lib/libobjc.A.dylib")
-            objc.objc_getClass.restype = ctypes.c_void_p
-            objc.objc_getClass.argtypes = [ctypes.c_char_p]
-            objc.sel_registerName.restype = ctypes.c_void_p
-            objc.sel_registerName.argtypes = [ctypes.c_char_p]
-            msg_send = objc.objc_msgSend
-            msg_send.restype = ctypes.c_void_p
-            msg_send.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
-
-            pool_class = objc.objc_getClass(b"NSAutoreleasePool")
-            alloc = objc.sel_registerName(b"alloc")
-            init = objc.sel_registerName(b"init")
-            drain = objc.sel_registerName(b"drain")
-            pool = msg_send(msg_send(pool_class, alloc), init)
-
-            self._objc = objc
-            self._msg_send = msg_send
-            self._drain = drain
-            self._pool = pool
-        except Exception:  # noqa: BLE001
-            self._pool = None
-        return self
-
-    def __exit__(self, *exc_info: object) -> None:
-        if self._pool is not None and self._msg_send is not None:
-            self._msg_send(self._pool, self._drain)
-        self._pool = None
-
-
-def autorelease_pool() -> contextlib.AbstractContextManager[object]:
-    if sys.platform == "darwin":
-        return MacOSAutoreleasePool()
-    return contextlib.nullcontext()
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run waveform-to-waveform Mel-Band-RoFormer CoreML inference.")
-    parser.add_argument("input_path")
-    parser.add_argument("--model-path", default=str(DEFAULT_MODEL_PATH))
-    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
-    parser.add_argument("--chunk-size", type=int, default=352800)
-    parser.add_argument("--num-overlap", type=int, default=2)
-    parser.add_argument(
-        "--compute-units",
-        choices=["ALL", "CPU_AND_GPU", "CPU_AND_NE", "CPU_ONLY"],
-        default="CPU_ONLY",
-        help="Core ML compute units to use when loading the mlpackage.",
-    )
-    parser.add_argument("--max-chunks", type=int, default=0, help="0 means process the full track.")
-    parser.add_argument("--no-write", action="store_true", help="Run inference without writing output files.")
-    return parser.parse_args()
-
-
-class PeakMemoryMonitor:
-    def __init__(self, interval: float = 0.05) -> None:
-        self.process = psutil.Process()
-        self.interval = interval
-        self.start_rss_mb = self._rss_mb()
-        self.peak_rss_mb = self.start_rss_mb
-        self.end_rss_mb = self.start_rss_mb
-        self._running = False
-        self._thread: threading.Thread | None = None
-
-    def _rss_mb(self) -> float:
-        return self.process.memory_info().rss / 1024 / 1024
-
-    def _sample(self) -> None:
-        while self._running:
-            self.peak_rss_mb = max(self.peak_rss_mb, self._rss_mb())
-            time.sleep(self.interval)
-
-    def __enter__(self) -> "PeakMemoryMonitor":
-        self.start_rss_mb = self._rss_mb()
-        self.peak_rss_mb = self.start_rss_mb
-        self._running = True
-        self._thread = threading.Thread(target=self._sample, daemon=True)
-        self._thread.start()
-        return self
-
-    def __exit__(self, *exc_info: object) -> None:
-        self._running = False
-        if self._thread is not None:
-            self._thread.join(timeout=1.0)
-        self.end_rss_mb = self._rss_mb()
-        self.peak_rss_mb = max(self.peak_rss_mb, self.end_rss_mb)
-
-    def result(self) -> dict[str, float]:
-        return {
-            "rss_start_mb": self.start_rss_mb,
-            "rss_peak_mb": self.peak_rss_mb,
-            "rss_end_mb": self.end_rss_mb,
-        }
-
-
-def parse_compute_units(name: str) -> ct.ComputeUnit:
-    return getattr(ct.ComputeUnit, name)
-
-
-def rss_mb() -> float:
-    return psutil.Process().memory_info().rss / 1024 / 1024
+from .memory import PeakMemoryMonitor, autorelease_pool, rss_mb
+from .paths import DEFAULT_AUDIO_OUTPUT_DIR, DEFAULT_COREML_DIR, WAVEFORM_MODEL_NAME
+from .runtime import parse_compute_units
 
 
 def make_window(chunk_size: int) -> np.ndarray:
@@ -222,8 +101,7 @@ def run_track(
     return estimated
 
 
-def main() -> None:
-    args = parse_args()
+def run_infer(args: argparse.Namespace) -> None:
     input_path = Path(args.input_path).expanduser().resolve()
     output_dir = Path(args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -256,7 +134,3 @@ def main() -> None:
     sf.write(instrumental_path, instrumental_out, sr, subtype="FLOAT")
     print(f"wrote={vocals_path}")
     print(f"wrote={instrumental_path}")
-
-
-if __name__ == "__main__":
-    main()

@@ -3,12 +3,17 @@ __pycache__/
 *.py[cod]
 .venv/
 
-Mel-Band-Roformer-Vocal-Model/
-checkpoints/
-logs/
-outputs/audio/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+build/
+dist/
 
-outputs/**/*.ckpt
-outputs/**/*.bin
-outputs/**/*.wav
-outputs/**/*_sliced_bad*
+external/
+artifacts/
+
+*.ckpt
+*.mlpackage/
+*.wav
+*.flac
+*.bin

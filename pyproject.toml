@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "melband-roformer-coreml"
+version = "0.1.0"
+description = "CoreML conversion and inference tools for the Mel-Band-RoFormer vocal model."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+
+[project.scripts]
+melband-coreml = "melband_roformer_coreml.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
