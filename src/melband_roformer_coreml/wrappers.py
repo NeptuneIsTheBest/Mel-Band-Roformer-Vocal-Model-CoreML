@@ -76,7 +76,7 @@ class FixedAttention(nn.Module):
         return self.to_out(out)
 
 
-class MaskCoreWrapper(nn.Module):
+class RoformerCoreWrapper(nn.Module):
     def __init__(self, model: nn.Module, frames: int = 801) -> None:
         super().__init__()
         self.band_split = model.band_split
@@ -108,7 +108,7 @@ class MaskCoreWrapper(nn.Module):
 class FixedWaveformToWaveformWrapper(nn.Module):
     def __init__(self, model: nn.Module, config: ConfigDict, frames: int) -> None:
         super().__init__()
-        self.mask_core = MaskCoreWrapper(model, frames=frames)
+        self.roformer_core = RoformerCoreWrapper(model, frames=frames)
 
         self.audio_channels = int(model.audio_channels)
         self.chunk_size = int(config.inference.chunk_size)
@@ -208,7 +208,7 @@ class FixedWaveformToWaveformWrapper(nn.Module):
 
     def forward(self, audio: torch.Tensor) -> torch.Tensor:
         packed_stft, stft_real, stft_imag = self._stft(audio)
-        packed_masks = self.mask_core(packed_stft)
+        packed_masks = self.roformer_core(packed_stft)
         vocals_real, vocals_imag = self._apply_masks(packed_masks, stft_real, stft_imag)
         return self._istft(vocals_real, vocals_imag)
 

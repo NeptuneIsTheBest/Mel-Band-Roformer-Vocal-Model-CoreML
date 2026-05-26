@@ -17,5 +17,3 @@ DEFAULT_LOG_DIR = DEFAULT_ARTIFACTS_DIR / "logs"
 
 WAVEFORM_MODEL_NAME = "MelBandRoformerVocal_macOS_waveform.mlpackage"
 WAVEFORM_METADATA_NAME = "MelBandRoformerVocal_macOS_waveform_metadata.json"
-MASK_CORE_MODEL_NAME = "MelBandRoformerVocal_iOS18_maskcore.mlpackage"
-MASK_CORE_METADATA_NAME = "MelBandRoformerVocal_iOS18_maskcore_metadata.json"

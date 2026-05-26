@@ -66,8 +66,6 @@ def build_parser() -> argparse.ArgumentParser:
     convert.add_argument("--checkpoint-path", default=str(DEFAULT_CHECKPOINT_PATH))
     convert.add_argument("--coreml-dir", default=str(DEFAULT_COREML_DIR))
     convert.add_argument("--log-dir", default=str(DEFAULT_LOG_DIR))
-    convert.add_argument("--skip-full", action="store_true", help="Skip waveform-to-waveform conversion.")
-    convert.add_argument("--force-maskcore", action="store_true", help="Always build the mask-core fallback too.")
     convert.add_argument(
         "--slice-sdpa",
         action="store_true",
@@ -81,7 +79,6 @@ def build_parser() -> argparse.ArgumentParser:
     verify.add_argument("--config-path", default=str(DEFAULT_CONFIG_PATH))
     verify.add_argument("--checkpoint-path", default=str(DEFAULT_CHECKPOINT_PATH))
     verify.add_argument("--coreml-dir", default=str(DEFAULT_COREML_DIR))
-    verify.add_argument("--mode", choices=["full", "maskcore"], default="full")
     verify.add_argument("--result-path", default="")
     verify.add_argument(
         "--compute-units",

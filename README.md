@@ -9,7 +9,7 @@ The converted CoreML model is waveform-to-waveform for one fixed-size chunk:
 - Audio format: mono or stereo input, 44.1 kHz
 - Chunk size: 352800 samples, about 8 seconds
 
-This repository does not include the upstream model source checkout, checkpoint, generated CoreML package, or generated audio. Those files are created under ignored local directories.
+This repository tracks the conversion and inference code, not large generated assets. The upstream model source checkout, checkpoint, generated CoreML package, and generated audio live under ignored local directories.
 
 ## Setup
 
@@ -22,6 +22,8 @@ python -m pip install -U pip
 python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
+
+You can download the prebuilt CoreML package from the [v1.0.0 release](https://github.com/NeptuneIsTheBest/Mel-Band-Roformer-Vocal-Model-CoreML/releases/tag/v1.0.0), or follow the steps below to prepare and convert it locally.
 
 ## Prepare Assets
 
@@ -50,12 +52,12 @@ Primary output:
 artifacts/coreml/MelBandRoformerVocal_macOS_waveform.mlpackage
 ```
 
-The package contains a large `weight.bin` file close to 1 GB, so it is intentionally ignored.
+The generated `.mlpackage` includes a nearly 1 GB `weight.bin`, so it is not tracked in git. Use the release asset or generate it locally with the command above.
 
 ## Verify
 
 ```bash
-melband-coreml verify --mode full --compute-units CPU_ONLY
+melband-coreml verify --compute-units CPU_ONLY
 ```
 
 The current conversion has been checked against the fixed PyTorch waveform wrapper with approximately:
