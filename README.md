@@ -9,8 +9,6 @@ The converted CoreML model is waveform-to-waveform for one fixed-size chunk:
 - Audio format: mono or stereo input, 44.1 kHz
 - Chunk size: 352800 samples, about 8 seconds
 
-This repository tracks the conversion and inference code, not large generated assets. The upstream model source checkout, checkpoint, generated CoreML package, and generated audio live under ignored local directories.
-
 ## Setup
 
 Use Python 3.12. The default Python on some machines may be too new for the PyTorch/CoreML stack.
@@ -51,8 +49,6 @@ Primary output:
 ```text
 artifacts/coreml/MelBandRoformerVocal_macOS_waveform.mlpackage
 ```
-
-The generated `.mlpackage` includes a nearly 1 GB `weight.bin`, so it is not tracked in git. Use the release asset or generate it locally with the command above.
 
 ## Verify
 
