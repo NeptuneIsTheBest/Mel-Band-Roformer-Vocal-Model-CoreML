@@ -38,6 +38,38 @@ class CliTest(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 parser.parse_args(["convert", "--skip-full"])
 
+    def test_convert_defaults_to_fp16_sliced_sdpa(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(["convert"])
+        self.assertEqual(args.compute_precision, "FLOAT16")
+        self.assertTrue(args.slice_sdpa)
+        self.assertEqual(args.sdpa_min_seq_length, 128)
+        self.assertEqual(args.sdpa_seq_length_divider, 32)
+
+    def test_convert_accepts_sdpa_and_precision_overrides(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(
+            [
+                "convert",
+                "--compute-precision",
+                "FLOAT32",
+                "--no-slice-sdpa",
+                "--sdpa-min-seq-length",
+                "256",
+                "--sdpa-seq-length-divider",
+                "16",
+            ]
+        )
+        self.assertEqual(args.compute_precision, "FLOAT32")
+        self.assertFalse(args.slice_sdpa)
+        self.assertEqual(args.sdpa_min_seq_length, 256)
+        self.assertEqual(args.sdpa_seq_length_divider, 16)
+
+    def test_convert_accepts_legacy_slice_sdpa_flag(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(["convert", "--no-slice-sdpa", "--slice-sdpa"])
+        self.assertTrue(args.slice_sdpa)
+
     def test_verify_does_not_accept_mode(self) -> None:
         parser = build_parser()
         with contextlib.redirect_stderr(io.StringIO()):

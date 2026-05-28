@@ -50,6 +50,21 @@ Primary output:
 artifacts/coreml/MelBandRoformerVocal_macOS_waveform.mlpackage
 ```
 
+The default conversion writes an fp16 `mlprogram` and enables CoreML's sliced-Q
+scaled-dot-product-attention lowering for long sequence attention. This keeps
+the same fixed 8 second input shape while reducing GPU attention workspace
+pressure. For diagnostics, the defaults can be changed:
+
+```bash
+melband-coreml convert \
+  --compute-precision FLOAT16 \
+  --sdpa-min-seq-length 128 \
+  --sdpa-seq-length-divider 32
+```
+
+Use `--no-slice-sdpa` only when comparing against the unsliced fused CoreML
+attention lowering.
+
 ## Verify
 
 ```bash
@@ -102,7 +117,7 @@ artifacts/audio/input_44k_stereo_vocals_coreml.wav
 artifacts/audio/input_44k_stereo_instrumental_coreml.wav
 ```
 
-`CPU_ONLY` is the recommended default on macOS for this package. It avoids extra GPU/ANE memory spikes seen with `ALL` or `CPU_AND_GPU`. The runner wraps each CoreML prediction in a macOS autorelease pool and prints per-chunk RSS while processing long tracks.
+`CPU_ONLY` remains the safest fallback, especially for older or unsliced packages. Packages converted with the current defaults can also be tested with `CPU_AND_GPU`; sliced SDPA is intended to avoid the large GPU attention workspace from the unsliced model. The runner wraps each CoreML prediction in a macOS autorelease pool and prints per-chunk RSS while processing long tracks.
 
 ## What Changed For CoreML
 
@@ -116,6 +131,4 @@ The upstream PyTorch model is written as a flexible waveform graph. Its `forward
 - Band mask averaging is also expressed as a fixed matrix multiply. The reduction matrix includes the per-frequency denominator from the upstream model, so frequencies covered by multiple bands are averaged deterministically.
 - The ISTFT back end is implemented with fixed `conv_transpose1d` kernels. The wrapper precomputes the inverse DFT weights and Hann-window overlap envelope, divides by that envelope, and crops away the center padding to return the original 8 second chunk length.
 
-The conversion writes an `mlprogram` model in `FLOAT32` precision. Verification compares CoreML output against this fixed PyTorch waveform wrapper, not against a separate post-processing path.
-
-Do not enable `--slice-sdpa` unless you are deliberately debugging CoreML attention lowering. The sliced attention pass can expand the graph significantly and cause very high memory usage.
+The conversion writes an `mlprogram` model in `FLOAT16` precision by default. For long time-axis attention, the default pass pipeline rewrites CoreML's fused `scaled_dot_product_attention` into statically sliced Q chunks. This preserves the 8 second waveform input while reducing peak GPU attention workspace. Verification compares CoreML output against this fixed PyTorch waveform wrapper, not against a separate post-processing path.

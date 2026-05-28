@@ -18,6 +18,9 @@ from .paths import (
 DEFAULT_SOURCE_REPO_URL = "https://github.com/KimberleyJensen/Mel-Band-Roformer-Vocal-Model.git"
 DEFAULT_HF_REPO_ID = "KimberleyJSN/melbandroformer"
 DEFAULT_CHECKPOINT_FILENAME = "MelBandRoformer.ckpt"
+DEFAULT_COMPUTE_PRECISION = "FLOAT16"
+DEFAULT_SDPA_MIN_SEQ_LENGTH = 128
+DEFAULT_SDPA_SEQ_LENGTH_DIVIDER = 32
 
 
 def run_prepare_command(args: argparse.Namespace) -> None:
@@ -67,9 +70,35 @@ def build_parser() -> argparse.ArgumentParser:
     convert.add_argument("--coreml-dir", default=str(DEFAULT_COREML_DIR))
     convert.add_argument("--log-dir", default=str(DEFAULT_LOG_DIR))
     convert.add_argument(
+        "--compute-precision",
+        choices=["FLOAT16", "FLOAT32"],
+        default=DEFAULT_COMPUTE_PRECISION,
+        help="Core ML compute precision to use during conversion.",
+    )
+    convert.add_argument(
+        "--no-slice-sdpa",
+        action="store_false",
+        dest="slice_sdpa",
+        help="Disable Core ML's sliced scaled-dot-product-attention pass.",
+    )
+    convert.add_argument(
         "--slice-sdpa",
         action="store_true",
-        help="Enable Core ML's sliced scaled-dot-product-attention pass for diagnostics.",
+        dest="slice_sdpa",
+        help=argparse.SUPPRESS,
+    )
+    convert.set_defaults(slice_sdpa=True)
+    convert.add_argument(
+        "--sdpa-min-seq-length",
+        type=int,
+        default=DEFAULT_SDPA_MIN_SEQ_LENGTH,
+        help="Minimum Q sequence length for Core ML sliced SDPA conversion.",
+    )
+    convert.add_argument(
+        "--sdpa-seq-length-divider",
+        type=int,
+        default=DEFAULT_SDPA_SEQ_LENGTH_DIVIDER,
+        help="Number of Q slices used by Core ML sliced SDPA conversion.",
     )
     convert.add_argument("--seed", type=int, default=1234)
     convert.set_defaults(func=run_convert_command)
